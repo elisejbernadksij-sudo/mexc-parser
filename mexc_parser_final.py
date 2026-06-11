@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/mexc_parser_final.py << 'EOF'
 #!/usr/bin/env python3
 """
 MEXC Twitter/X Giveaway Parser + Telegram уведомления
@@ -24,29 +25,52 @@ ACCOUNTS = [
 ]
 
 KEYWORDS = [
-    # UID
+    # UID (универсально на всех языках)
     "uid", "~uid~",
     # English
     "giveaway", "give away", "raffle", "contest", "prize",
-    "winner", "reward", "airdrop",
+    "winner", "reward", "airdrop", "free", "win",
     # Russian
     "розыгрыш", "приз", "победитель", "выиграй", "конкурс",
+    "бесплатно", "выигрыш",
     # Spanish
-    "sorteo", "rifa", "premio", "ganador", "concurso", "regalar",
+    "sorteo", "rifa", "premio", "ganador", "concurso", "regalar", "gratis",
     # Portuguese
-    "sorteio", "prêmio", "premio", "concurso", "vencedor", "brinde", "oferta",
+    "sorteio", "prêmio", "concurso", "vencedor", "brinde", "oferta", "grátis",
+    # Polish
+    "konkurs", "nagroda", "nagrody", "wylosowany", "pula nagród",
+    "wygrana", "rozdanie", "darmowe",
     # Urdu (Pakistan)
     "انعام", "قرعہ اندازی", "مقابلہ", "فاتح", "تحفہ",
     # Arabic
-    "هبة", "مسابقة", "جائزة", "فائز", "سحب", "هدية",
+    "هبة", "مسابقة", "جائزة", "فائز", "سحب", "هدية", "مجاني",
+    # Vietnamese
+    "quay thưởng", "tặng quà", "phần thưởng", "trao thưởng", "miễn phí",
+    # Chinese
+    "抽奖", "赠送", "奖励", "获奖", "免费",
+    # Japanese
+    "プレゼント", "抽選", "当選", "賞品", "無料",
+    # Korean
+    "경품", "추첨", "이벤트", "무료",
+    # Turkish
+    "çekiliş", "ödül", "kazanan", "bedava",
+    # French
+    "concours", "cadeau", "tirage", "gratuit",
+    # German
+    "gewinnspiel", "verlosung", "preis", "kostenlos",
+    # Romanian
+    "concurs", "premiu", "câștigător", "gratuit",
+    # Thai
+    "แจกรางวัล", "รางวัล", "ฟรี",
+    # Bengali
+    "পুরস্কার", "বিনামূল্যে",
 ]
 
-CHECK_INTERVAL_SECONDS = 300  # Каждые 5 минут
+CHECK_INTERVAL_SECONDS = 120  # Каждые 2 минуты
 
 # ─── TELEGRAM ─────────────────────────────────────────────────────────────────
 
 def send_telegram(message: str):
-    """Отправляет сообщение в Telegram."""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     try:
         resp = requests.post(url, json={
@@ -96,8 +120,9 @@ def check_account(scraper, account: str, seen_links: set) -> int:
     found_count = 0
     try:
         print(f"  🔍 @{account}...")
-        tweets = scraper.get_tweets(account, mode="user", number=20)
+        tweets = scraper.get_tweets(account, mode="user", number=30)
         tweet_list = tweets.get("tweets", [])
+print(f"     Получено твитов: {len(tweet_list)}")
 
         for tweet in tweet_list:
             text = tweet.get("text", "")
@@ -112,7 +137,6 @@ def check_account(scraper, account: str, seen_links: set) -> int:
                 is_new = save_to_file(tweet, account, matched)
                 if is_new:
                     found_count += 1
-                    # Отправка в Telegram
                     short_text = text[:400] + ("..." if len(text) > 400 else "")
                     msg = (
                         f"🎁 <b>Розыгрыш найден!</b>\n\n"
@@ -122,7 +146,7 @@ def check_account(scraper, account: str, seen_links: set) -> int:
                         f"🔗 {link}"
                     )
                     send_telegram(msg)
-                    print(f"  ✅ Найдено и отправлено в Telegram: @{account}")
+                    print(f"  ✅ Отправлено в Telegram: @{account} — {', '.join(matched)}")
 
     except Exception as e:
         print(f"  ⚠️  Ошибка @{account}: {e}")
@@ -143,8 +167,7 @@ def run():
     print(f"📬 Telegram Chat ID: {TELEGRAM_CHAT_ID}")
     print(f"⏱  Интервал: {CHECK_INTERVAL_SECONDS} сек\n")
 
-    # Тестовое сообщение
-    send_telegram("✅ <b>MEXC Parser запущен!</b>\nМониторинг 25 аккаунтов начат.")
+    send_telegram("✅ <b>MEXC Parser перезапущен!</b>\nМониторинг 25 аккаунтов.\nИнтервал: 2 минуты.")
 
     scraper = Nitter(log_level=1, skip_instance_check=False)
     seen_links = set()
@@ -159,7 +182,7 @@ def run():
         for account in ACCOUNTS:
             found = check_account(scraper, account, seen_links)
             total_found += found
-            time.sleep(2)
+            time.sleep(3)
 
         if total_found == 0:
             print("  ℹ️  Новых розыгрышей не найдено")
@@ -170,5 +193,6 @@ def run():
         time.sleep(CHECK_INTERVAL_SECONDS)
 
 
-if __name__ == "__main__":
+if name == "__main__":
     run()
+EOF
